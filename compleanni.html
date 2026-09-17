@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Compleanni di oggi</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    .contenitore {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 25px 18px;
+    }
+
+    .scheda {
+      background: white;
+      border-radius: 20px;
+      padding: 25px 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.10);
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .data {
+      text-align: center;
+      color: #666;
+      font-size: 17px;
+      margin-bottom: 25px;
+    }
+
+    .numero {
+      text-align: center;
+      font-size: 55px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    .descrizione {
+      text-align: center;
+      font-size: 20px;
+      margin-bottom: 25px;
+    }
+
+    .persona {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      margin-top: 10px;
+      background: #f0f0f0;
+      border-radius: 12px;
+    }
+
+    .nome {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .eta {
+      font-size: 17px;
+      color: #555;
+    }
+
+    .nessuno {
+      text-align: center;
+      font-size: 20px;
+      padding: 25px 10px;
+    }
+
+    .errore {
+      text-align: center;
+      color: #b00020;
+      padding: 15px;
+      margin-top: 20px;
+      background: #ffecec;
+      border-radius: 10px;
+    }
+
+    .aggiornamento {
+      text-align: center;
+      color: #777;
+      font-size: 13px;
+      margin-top: 20px;
+    }
+
+    .caricamento {
+      text-align: center;
+      font-size: 18px;
+      padding: 30px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="contenitore">
+
+    <div class="scheda">
+
+      <h1>🎂 Compleanni di oggi</h1>
+
+      <div
+        id="data"
+        class="data"
+      >
+        Caricamento data...
+      </div>
+
+      <div
+        id="contenuto"
+        class="caricamento"
+      >
+        Caricamento...
+      </div>
+
+      <div
+        id="aggiornamento"
+        class="aggiornamento"
+      >
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <script>
+
+    // ==================================================
+    // SUPABASE
+    // ==================================================
+
+    const SUPABASE_URL =
+      "https://cfbpxpohmpauiyxtwyee.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_vj9XFCK8_e_RGv7VOcai2A_LVPs0WfU";
+
+
+    // ==================================================
+    // MOSTRA DATA ITALIANA
+    // ==================================================
+
+    function ottieniDataItalia() {
+
+      const adesso = new Date();
+
+      const parti =
+        new Intl.DateTimeFormat(
+          "it-IT",
+          {
+            timeZone: "Europe/Rome",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          }
+        ).formatToParts(adesso);
+
+      let giorno;
+      let mese;
+      let anno;
+
+      for (const parte of parti) {
+
+        if (parte.type === "day") {
+          giorno = parseInt(parte.value);
+        }
+
+        if (parte.type === "month") {
+          mese = parseInt(parte.value);
+        }
+
+        if (parte.type === "year") {
+          anno = parseInt(parte.value);
+        }
+      }
+
+      return {
+        giorno,
+        mese,
+        anno
+      };
+    }
+
+
+    // ==================================================
+    // FORMATTA DATA
+    // ==================================================
+
+    function mostraData(data) {
+
+      const testo =
+        String(data.giorno).padStart(2, "0")
+        + "/"
+        + String(data.mese).padStart(2, "0")
+        + "/"
+        + data.anno;
+
+      document.getElementById("data").textContent =
+        testo;
+    }
+
+
+    // ==================================================
+    // CARICA COMPLEANNI
+    // ==================================================
+
+    async function caricaCompleanni() {
+
+      const contenuto =
+        document.getElementById("contenuto");
+
+      const aggiornamento =
+        document.getElementById("aggiornamento");
+
+
+      contenuto.innerHTML =
+        "Caricamento...";
+
+
+      const data =
+        ottieniDataItalia();
+
+
+      mostraData(data);
+
+
+      try {
+
+        // ----------------------------------------------
+        // Chiamata alla funzione Supabase
+        // ----------------------------------------------
+
+        const risposta =
+          await fetch(
+            SUPABASE_URL +
+            "/rest/v1/rpc/compleanni_di_oggi",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                "apikey":
+                  SUPABASE_KEY,
+
+                "Authorization":
+                  "Bearer " + SUPABASE_KEY
+              },
+
+              body: JSON.stringify({
+                giorno_oggi:
+                  data.giorno,
+
+                mese_oggi:
+                  data.mese,
+
+                anno_oggi:
+                  data.anno
+              })
+            }
+          );
+
+
+        // ----------------------------------------------
+        // Controlla risposta
+        // ----------------------------------------------
+
+        if (!risposta.ok) {
+
+          const testoErrore =
+            await risposta.text();
+
+          throw new Error(
+            "Errore Supabase: " +
+            risposta.status +
+            " " +
+            testoErrore
+          );
+        }
+
+
+        // ----------------------------------------------
+        // Leggi JSON
+        // ----------------------------------------------
+
+        const compleanni =
+          await risposta.json();
+
+
+        // ----------------------------------------------
+        // Nessun compleanno
+        // ----------------------------------------------
+
+        if (
+          !Array.isArray(compleanni) ||
+          compleanni.length === 0
+        ) {
+
+          contenuto.innerHTML = `
+
+            <div class="numero">
+              0
+            </div>
+
+            <div class="descrizione">
+              ❌ Nessun compleanno oggi
+            </div>
+
+          `;
+
+        }
+
+
+        // ----------------------------------------------
+        // Uno o più compleanni
+        // ----------------------------------------------
+
+        else {
+
+          let html = `
+
+            <div class="numero">
+              ${compleanni.length}
+            </div>
+
+            <div class="descrizione">
+              🎉
+              ${
+                compleanni.length === 1
+                ? "compleanno oggi"
+                : "compleanni oggi"
+              }
+            </div>
+
+          `;
+
+
+          // --------------------------------------------
+          // Elenco persone
+          // --------------------------------------------
+
+          for (
+            const persona of compleanni
+          ) {
+
+            html += `
+
+              <div class="persona">
+
+                <div class="nome">
+                  ${escapeHtml(persona.nome)}
+                </div>
+
+                <div class="eta">
+                  ${persona.eta} anni
+                </div>
+
+              </div>
+
+            `;
+          }
+
+
+          contenuto.innerHTML =
+            html;
+        }
+
+
+        // ----------------------------------------------
+        // Ora aggiornamento
+        // ----------------------------------------------
+
+        const ora =
+          new Date().toLocaleTimeString(
+            "it-IT",
+            {
+              timeZone: "Europe/Rome",
+              hour: "2-digit",
+              minute: "2-digit"
+            }
+          );
+
+
+        aggiornamento.textContent =
+          "Ultimo aggiornamento: " +
+          ora;
+
+
+      } catch (errore) {
+
+        console.error(errore);
+
+
+        contenuto.innerHTML = `
+
+          <div class="errore">
+
+            ⚠️
+            <br><br>
+
+            Impossibile collegarsi a Supabase.
+
+          </div>
+
+        `;
+
+        aggiornamento.textContent =
+          "Controlla la connessione Internet.";
+      }
+    }
+
+
+    // ==================================================
+    // PROTEZIONE TESTO
+    // ==================================================
+
+    function escapeHtml(testo) {
+
+      if (
+        testo === null ||
+        testo === undefined
+      ) {
+
+        return "";
+      }
+
+      return String(testo)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+
+    // ==================================================
+    // AVVIO
+    // ==================================================
+
+    caricaCompleanni();
+
+
+    // ==================================================
+    // AGGIORNAMENTO OGNI 60 SECONDI
+    // ==================================================
+
+    setInterval(
+      caricaCompleanni,
+      60000
+    );
+
+  </script>
+
+</body>
+</html>
